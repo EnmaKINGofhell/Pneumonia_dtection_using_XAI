@@ -44,9 +44,6 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
         }
-        .detailed-explanation {
-            margin-top: 30px;
-        }
         .upload-btn {
             padding: 10px 20px;
             background-color: #007bff;
@@ -85,25 +82,6 @@
             width: 100%;
             border-radius: 5px;
             margin-top: 15px;
-        }
-        .explanation-panel {
-            margin-bottom: 20px;
-        }
-        .explanation-panel img {
-            width: 100%;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .explanation-panel h5 {
-            font-size: 16px;
-            margin-bottom: 5px;
-            text-align: center;
-        }
-        .explanation-panel p {
-            font-size: 14px;
-            color: #6c757d;
-            text-align: center;
         }
         .stats-card {
             background-color: #f8f9fa;
@@ -180,52 +158,15 @@
             <h3>Model Explanation</h3>
             <p>The visualization below shows which regions of the image influenced the model's prediction.</p>
             <div class="text-center">
-                <img id="combined-explanation-image" class="explanation-image">
+                <img id="explanation-image" class="explanation-image">
             </div>
-            
-            <div class="detailed-explanation">
-                <h4>Detailed Visualizations</h4>
-                <p>The images below show different aspects of the model's analysis:</p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="explanation-panel">
-                            <img id="original-image" alt="Original X-ray Image">
-                            <h5>Original X-ray Image</h5>
-                            <p>The input chest X-ray image</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="explanation-panel">
-                            <img id="lime-mask" alt="LIME Importance Mask">
-                            <h5>LIME Importance Mask</h5>
-                            <p>Brighter areas indicate regions more important for the prediction</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="explanation-panel">
-                            <img id="prediction-image" alt="Prediction Visualization">
-                            <h5>Prediction Visualization</h5>
-                            <p>The predicted class with highlighted influential regions</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="explanation-panel">
-                            <img id="segments-image" alt="Superpixel Segmentation">
-                            <h5>Superpixel Segmentation</h5>
-                            <p>The segmentation used for generating explanations</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <div class="mt-4">
                 <h4>Interpretation Guide</h4>
                 <ul>
-                    <li><strong>Original X-ray Image:</strong> The input chest X-ray</li>
-                    <li><strong>LIME Importance Mask:</strong> Brighter areas are more influential in the prediction</li>
-                    <li><strong>Prediction Visualization:</strong> Shows the predicted class with highlighted regions</li>
-                    <li><strong>Superpixel Segmentation:</strong> The image divided into superpixels for analysis</li>
+                    <li><strong>Top Left:</strong> Original image</li>
+                    <li><strong>Top Right:</strong> LIME importance mask (brighter areas are more important)</li>
+                    <li><strong>Bottom Left:</strong> Predicted class with highlighted regions</li>
+                    <li><strong>Bottom Right:</strong> Superpixel segmentation used for explanation</li>
                 </ul>
             </div>
         </div>
@@ -245,13 +186,7 @@
             const meanValue = document.getElementById('mean-value');
             const varianceValue = document.getElementById('variance-value');
             const stdDevValue = document.getElementById('std-dev-value');
-            
-            // Combined and individual explanation images
-            const combinedExplanationImage = document.getElementById('combined-explanation-image');
-            const originalImage = document.getElementById('original-image');
-            const limeMask = document.getElementById('lime-mask');
-            const predictionImage = document.getElementById('prediction-image');
-            const segmentsImage = document.getElementById('segments-image');
+            const explanationImage = document.getElementById('explanation-image');
             
             // Preview image
             fileUpload.addEventListener('change', function(e) {
@@ -306,58 +241,14 @@
                     // Update probability
                     predictionProbability.textContent = (data.probability * 100).toFixed(2);
                     
-                    // Check if explanation data exists
-                    if (data.explanation && typeof data.explanation === 'object') {
-                        // Update statistics
-                        if (data.explanation.mean_value !== undefined) {
-                            meanValue.textContent = data.explanation.mean_value.toFixed(4);
-                        } else {
-                            meanValue.textContent = "N/A";
-                        }
-                        
-                        if (data.explanation.variance !== undefined) {
-                            varianceValue.textContent = data.explanation.variance.toFixed(4);
-                        } else {
-                            varianceValue.textContent = "N/A";
-                        }
-                        
-                        if (data.explanation.std_dev !== undefined) {
-                            stdDevValue.textContent = data.explanation.std_dev.toFixed(4);
-                        } else {
-                            stdDevValue.textContent = "N/A";
-                        }
-                        
-                        // Show explanation images if they exist
-                        explanationSection.style.display = 'block';
-                        
-                        // Update the combined explanation image
-                        if (data.explanation.image_base64) {
-                            combinedExplanationImage.src = 'data:image/png;base64,' + data.explanation.image_base64;
-                        }
-                        
-                        // Update individual explanation images
-                        if (data.explanation.original_image) {
-                            originalImage.src = 'data:image/png;base64,' + data.explanation.original_image;
-                        }
-                        
-                        if (data.explanation.lime_mask) {
-                            limeMask.src = 'data:image/png;base64,' + data.explanation.lime_mask;
-                        }
-                        
-                        if (data.explanation.prediction_image) {
-                            predictionImage.src = 'data:image/png;base64,' + data.explanation.prediction_image;
-                        }
-                        
-                        if (data.explanation.segments_image) {
-                            segmentsImage.src = 'data:image/png;base64,' + data.explanation.segments_image;
-                        }
-                    } else {
-                        // Handle case where explanation data is missing
-                        meanValue.textContent = "N/A";
-                        varianceValue.textContent = "N/A";
-                        stdDevValue.textContent = "N/A";
-                        explanationSection.style.display = 'none';
-                    }
+                    // Update statistics
+                    meanValue.textContent = data.explanation.mean_value.toFixed(4);
+                    varianceValue.textContent = data.explanation.variance.toFixed(4);
+                    stdDevValue.textContent = data.explanation.std_dev.toFixed(4);
+                    
+                    // Show explanation
+                    explanationSection.style.display = 'block';
+                    explanationImage.src = 'data:image/png;base64,' + data.explanation.image_base64;
                 })
                 .catch(error => {
                     console.error('Error:', error);

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results - Pneumonia Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Pneumonia Detection Results</h1>
+        <p>Model Used: {{ model_used }}</p>
+        
+        <div class="result-section">
+            <h2>Prediction: <span class="{{ 'pneumonia' if prediction == 'Pneumonia' else 'normal' }}">
+                {{ prediction }} ({{ "%.2f"|format(confidence * 100) }}% confidence)
+            </span></h2>
+        </div>
+        
+        <div class="image-grid">
+            <div class="image-container">
+                <h3>Original X-ray</h3>
+                <img src="{{ url_for('static', filename='uploads/' + uploaded_image.split('/')[-1]) }}" alt="Uploaded X-ray">
+            </div>
+            
+            <div class="image-container">
+                <h3>LIME Explanation</h3>
+                <img src="{{ url_for('static', filename='lime_explanations/' + lime_explanation.split('/')[-1]) }}" alt="LIME Explanation">
+                <p>Highlighted areas show regions most influential in the prediction</p>
+            </div>
+        </div>
+        
+        <a href="{{ url_for('index') }}" class="btn">Analyze Another Image</a>
+    </div>
+</body>
+</html>

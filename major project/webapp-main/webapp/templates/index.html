@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pneumonia Detection with LIME Explanation</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #343a40;
+            color: white;
+            border-radius: 10px;
+        }
+        .upload-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .result-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+        .explanation-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        .upload-btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-btn:hover {
+            background-color: #0056b3;
+        }
+        .prediction-badge {
+            font-size: 18px;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        .normal {
+            background-color: #28a745;
+            color: white;
+        }
+        .pneumonia {
+            background-color: #dc3545;
+            color: white;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        .explanation-image {
+            width: 100%;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .stats-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Pneumonia Detection with LIME Explanation</h1>
+            <p>Upload a chest X-ray image to detect pneumonia and view model explanations</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="upload-section">
+                    <h3>Upload X-ray Image</h3>
+                    <form id="upload-form">
+                        <div class="mb-3">
+                            <label for="file-upload" class="form-label">Select an X-ray image</label>
+                            <input type="file" class="form-control" id="file-upload" accept="image/*">
+                        </div>
+                        <div id="image-preview" class="mb-3">
+                            <img id="preview-img" class="preview-image" style="display: none;">
+                        </div>
+                        <button type="submit" class="btn btn-primary upload-btn">Analyze Image</button>
+                    </form>
+                    
+                    <div class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Analyzing image...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="result-section" id="result-section">
+                    <h3>Detection Result</h3>
+                    <div class="text-center mb-4">
+                        <span id="prediction-badge" class="prediction-badge"></span>
+                        <p class="mt-2">Confidence: <span id="prediction-probability"></span>%</p>
+                    </div>
+                    
+                    <div class="stats-card">
+                        <h4>Model Statistics</h4>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Mean Value:</strong> <span id="mean-value"></span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Variance:</strong> <span id="variance-value"></span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Std Dev:</strong> <span id="std-dev-value"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="explanation-section" id="explanation-section" style="display: none;">
+            <h3>Model Explanation</h3>
+            <p>The visualization below shows which regions of the image influenced the model's prediction.</p>
+            <div class="text-center">
+                <img id="explanation-image" class="explanation-image">
+            </div>
+            <div class="mt-4">
+                <h4>Interpretation Guide</h4>
+                <ul>
+                    <li><strong>Top Left:</strong> Original image</li>
+                    <li><strong>Top Right:</strong> LIME importance mask (brighter areas are more important)</li>
+                    <li><strong>Bottom Left:</strong> Predicted class with highlighted regions</li>
+                    <li><strong>Bottom Right:</strong> Superpixel segmentation used for explanation</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadForm = document.getElementById('upload-form');
+            const fileUpload = document.getElementById('file-upload');
+            const previewImg = document.getElementById('preview-img');
+            const loading = document.querySelector('.loading');
+            const resultSection = document.getElementById('result-section');
+            const explanationSection = document.getElementById('explanation-section');
+            const predictionBadge = document.getElementById('prediction-badge');
+            const predictionProbability = document.getElementById('prediction-probability');
+            const meanValue = document.getElementById('mean-value');
+            const varianceValue = document.getElementById('variance-value');
+            const stdDevValue = document.getElementById('std-dev-value');
+            const explanationImage = document.getElementById('explanation-image');
+            
+            // Preview image
+            fileUpload.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        previewImg.src = event.target.result;
+                        previewImg.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Handle form submission
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const fileInput = fileUpload.files[0];
+                if (!fileInput) {
+                    alert('Please select an image file');
+                    return;
+                }
+                
+                // Show loading
+                loading.style.display = 'block';
+                resultSection.style.display = 'none';
+                explanationSection.style.display = 'none';
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('file', fileInput);
+                
+                // Send request
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading
+                    loading.style.display = 'none';
+                    
+                    // Show result
+                    resultSection.style.display = 'block';
+                    
+                    // Update prediction
+                    predictionBadge.textContent = data.prediction;
+                    predictionBadge.className = 'prediction-badge ' + 
+                        (data.prediction === 'Normal' ? 'normal' : 'pneumonia');
+                    
+                    // Update probability
+                    predictionProbability.textContent = (data.probability * 100).toFixed(2);
+                    
+                    // Update statistics
+                    meanValue.textContent = data.explanation.mean_value.toFixed(4);
+                    varianceValue.textContent = data.explanation.variance.toFixed(4);
+                    stdDevValue.textContent = data.explanation.std_dev.toFixed(4);
+                    
+                    // Show explanation
+                    explanationSection.style.display = 'block';
+                    explanationImage.src = 'data:image/png;base64,' + data.explanation.image_base64;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loading.style.display = 'none';
+                    alert('An error occurred while processing the image');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
