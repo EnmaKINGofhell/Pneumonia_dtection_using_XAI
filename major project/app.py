@@ -645,8 +645,6 @@ with gr.Blocks(title="Pneumonia X-Ray Analysis", css=custom_css) as demo:
             # With this updated code that adds file type and size restrictions:
             with gr.Group(elem_classes="upload-box"):
                 input_image = gr.Image(
-                    label="Upload X-ray Image (JPEG, PNG, SVG, max 5MB)", 
-                    type="numpy", 
                     elem_id="input-image",
                     sources=["upload", "webcam", "clipboard"]
                 )
